@@ -1,13 +1,38 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Sparkles, Upload, Wand2, Zap } from "lucide-react";
+import {
+  Camera,
+  Sparkles,
+  Upload,
+  Wand2,
+  Zap,
+  Clock,
+  Bot,
+  Wifi,
+  Network,
+  Cpu,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const categoryIcons: Record<string, typeof Bot> = {
+  Robotics: Bot,
+  IoT: Wifi,
+  Networking: Network,
+  Mechatronics: Cpu,
+  Power: Zap,
+};
 
 const suggestions = [
   "5V line-following robot with a higher voltage buzzer",
   "ESP32 weather station, OLED + BME280",
   "Bluetooth audio amp, 2x3W class-D",
+];
+
+const projects = [
+  { name: "Line-Follower Bot", time: "2d ago", cost: 3387.2, tag: "Robotics" },
+  { name: "Power Electronics", time: "3d ago", cost: 2450.0, tag: "Power" },
 ];
 
 export default function Home() {
@@ -96,29 +121,38 @@ export default function Home() {
           <h2 className="text-sm font-medium text-muted-foreground">
             Recent projects
           </h2>
-          <button className="text-xs text-primary">See all</button>
+          <Link href="/bom" className="text-xs text-primary hover:underline">
+            See all
+          </Link>
         </div>
         <div className="flex flex-col gap-2">
-          {[
-            { name: "Line-Follower Bot", parts: 7, cost: 3387.2 },
-            { name: "ESP32 Weather Node", parts: 5, cost: 1983.6 },
-          ].map((p) => (
+          {projects.map((p) => (
             <div
               key={p.name}
               className="flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Zap size={18} />
+                  {(() => {
+                    const Icon = categoryIcons[p.tag] || Zap;
+                    return <Icon size={18} />;
+                  })()}
                 </div>
-                <div>
+                <div className="text-left">
                   <p className="text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.parts} parts · ₱{p.cost.toFixed(2)}
+                    ₱{p.cost.toFixed(2)}
                   </p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">2d</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {p.tag}
+                </span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock size={12} /> {p.time}
+                </span>
+              </div>
             </div>
           ))}
         </div>

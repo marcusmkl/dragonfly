@@ -2,20 +2,111 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Check, Loader2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Loader2,
+  X,
+  Zap,
+  Clock,
+  Bot,
+  Wifi,
+  Network,
+  Cpu,
+} from "lucide-react";
 import { useBom } from "../../features/bom/store";
 import { ComponentCard } from "../../features/bom/ComponentCard";
 import { SubstituteSheet } from "../../features/bom/SubstituteSheet";
-import { BottomNav } from "../../components/BottomNav";
 import { compatibilityAlerts, type Component } from "../../features/bom/data";
 import { useRouter } from "next/navigation";
 
+const categoryIcons: Record<string, typeof Bot> = {
+  Robotics: Bot,
+  IoT: Wifi,
+  Networking: Network,
+  Mechatronics: Cpu,
+};
+
 export default function BomScreen() {
   const { items, total, itemCount } = useBom();
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [sub, setSub] = useState<Component | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [checkout, setCheckout] = useState<"idle" | "loading" | "done">("idle");
   const router = useRouter();
+
+  if (!selectedProject) {
+    return (
+      <div className="flex flex-col gap-6 px-5 pt-14 pb-48">
+        <header>
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            BOM Manager
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            Select Project
+          </h1>
+        </header>
+        <div className="flex flex-col gap-3">
+          {[
+            {
+              name: "Line-Follower Bot",
+              time: "2d ago",
+              cost: 3387.2,
+              tag: "Robotics",
+            },
+            {
+              name: "ESP32 Weather Node",
+              time: "5d ago",
+              cost: 1983.6,
+              tag: "IoT",
+            },
+            {
+              name: "Power Electronics",
+              time: "3d ago",
+              cost: 2450.0,
+              tag: "Power",
+            },
+          ].map((p) => (
+            <button
+              key={p.name}
+              onClick={() => setSelectedProject(p.name)}
+              className="group flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5 transition-all hover:bg-surface-elevated hover:ring-primary/40 hover:shadow-[0_0_20px_-5px_var(--primary)]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  {(() => {
+                    const Icon = categoryIcons[p.tag] || Zap;
+                    return <Icon size={18} />;
+                  })()}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ₱{p.cost.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-end gap-1">
+                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {p.tag}
+                  </span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock size={12} /> {p.time}
+                  </span>
+                </div>
+                <ArrowRight
+                  size={18}
+                  className="text-muted-foreground group-hover:text-primary transition-colors"
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleCheckout = () => {
     setCheckout("loading");
@@ -29,13 +120,20 @@ export default function BomScreen() {
   return (
     <>
       <div className="flex flex-col gap-4 px-5 pt-14 pb-48">
-        <header className="flex items-end justify-between">
-          <div>
+        <header className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <button
+              onClick={() => setSelectedProject(null)}
+              className="mb-2 flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+            >
+              <ArrowRight size={12} className="rotate-180" />
+              Back
+            </button>
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Project
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Line-Follower Bot
+              {selectedProject}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {items.length} components · {itemCount} units
@@ -58,7 +156,9 @@ export default function BomScreen() {
                   <AlertTriangle size={14} className="text-warning" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-warning">{a.title}</p>
+                  <p className="text-xs font-semibold text-warning">
+                    {a.title}
+                  </p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">
                     {a.message}
                   </p>
@@ -106,9 +206,9 @@ export default function BomScreen() {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="font-mono text-base font-semibold tabular-nums"
-                >
+              >
                 ₱{total.toFixed(2)}
-                </motion.p>
+              </motion.p>
             </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
