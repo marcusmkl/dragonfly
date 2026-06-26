@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -19,7 +19,7 @@ import { useBom } from "../../features/bom/store";
 import { ComponentCard } from "../../features/bom/ComponentCard";
 import { SubstituteSheet } from "../../features/bom/SubstituteSheet";
 import { compatibilityAlerts, type Component } from "../../features/bom/data";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -35,6 +35,15 @@ export default function BomScreen() {
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [checkout, setCheckout] = useState<"idle" | "loading" | "done">("idle");
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const generate = searchParams.get("generate");
+    const prompt = searchParams.get("prompt");
+    if (generate === "true" && prompt) {
+      setSelectedProject(decodeURIComponent(prompt));
+    }
+  }, [searchParams]);
 
   if (!selectedProject) {
     return (

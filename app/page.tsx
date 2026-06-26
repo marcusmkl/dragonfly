@@ -13,6 +13,7 @@ import {
   Network,
   Cpu,
   X,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -40,7 +41,21 @@ const projects = [
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showTip, setShowTip] = useState(false);
   const router = useRouter();
+
+  const handleGenerate = () => {
+    if (prompt.trim() === "") {
+      setShowTip(true);
+      setTimeout(() => setShowTip(false), 3000);
+      return;
+    }
+    setIsLoading(true);
+    setTimeout(() => {
+      router.push(`/bom?generate=true&prompt=${encodeURIComponent(prompt)}`);
+    }, 2000);
+  };
 
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<
@@ -204,12 +219,31 @@ export default function Home() {
       {/* Generate */}
       <motion.button
         whileTap={{ scale: 0.97 }}
-        onClick={() => router.push(`/bom`)}
-        className="glow-primary mt-2 flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-semibold text-primary-foreground"
+        onClick={handleGenerate}
+        disabled={isLoading}
+        className="glow-primary mt-2 flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-semibold text-primary-foreground disabled:opacity-70"
       >
-        <Sparkles size={18} />
-        Generate BOM
+        {isLoading ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles size={18} />
+            Generate BOM
+          </>
+        )}
       </motion.button>
+      {showTip && (
+        <motion.p
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center text-xs text-warning mt-2"
+        >
+          Please enter a description to generate a BOM.
+        </motion.p>
+      )}
 
       {/* Recent */}
       <section className="mt-2">
