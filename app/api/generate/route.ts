@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { BomExtractionSchema } from "@/lib/schemas/bomSchema";
+import { resolveComponentPricing } from "@/lib/pricing";
 
 // Initialize Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -51,40 +52,22 @@ CRITICAL INSTRUCTIONS:
     const extraction = JSON.parse(response.text() || "{}");
     const extractedItems = extraction.items || [];
     
-    // 3. Pricing Engine Logic (Placeholder for Step 3)
+    // 3. Pricing Engine Logic
     const itemsWithPricing = await Promise.all(
       extractedItems.map(async (item: any, index: number) => {
-        // [PLACEHOLDER] - To be replaced by actual web search scraping
+        // Run real web search / scraping
+        const storeOptions = await resolveComponentPricing(item.name, item.partNumber);
         
-        // Mocking the result of the web search for structure demonstration
-        const storeOptions = [
-          {
-            id: `store-${index}-1`,
-            name: `${item.partNumber} Module`,
-            storeName: "Makerlab Electronics",
-            price: 150.00,
-            link: "https://www.makerlab-electronics.com/search?q=" + encodeURIComponent(item.partNumber),
-            inStock: true,
-            isCheapest: true,
-          },
-          {
-            id: `store-${index}-2`,
-            name: item.partNumber,
-            storeName: "e-Gizmo",
-            price: 165.00,
-            link: "https://www.e-gizmo.net/?s=" + encodeURIComponent(item.partNumber),
-            inStock: true,
-            isCheapest: false,
-          }
-        ];
+        // Find the cheapest to set as default
+        const cheapestOption = storeOptions.find(s => s.isCheapest) || storeOptions[0];
 
         return {
           id: `c-gen-${Date.now()}-${index}`,
           ...item,
           storeOptions,
           // Hydrate the default frontend expectations based on cheapest option
-          unitPrice: storeOptions[0].price,
-          stock: storeOptions[0].inStock ? "in-stock" : "out",
+          unitPrice: cheapestOption ? cheapestOption.price : 0,
+          stock: cheapestOption?.inStock ? "in-stock" : "out",
         };
       })
     );
