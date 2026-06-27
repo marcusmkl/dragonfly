@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Check,
-  ExternalLink,
-  Package,
-  Clock,
-  Zap,
-  ShoppingCart,
-} from "lucide-react";
+import { Check, ExternalLink, Package, Zap, ShoppingCart } from "lucide-react";
 import { useBom } from "../../features/bom/store";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -23,14 +16,35 @@ import {
 import { categoryIcons } from "@/data/mock/projects";
 
 export default function CartScreen() {
-  const { items, total, itemCount, projectInfo, pushedHistory, pushToCart } =
-    useBom();
+  const { pushedHistory, moveToLastCart } = useBom();
   const [isListModalOpen, setIsListModalOpen] = useState(false);
 
-  const handlePushToCart = (projectName: string) => {
-    pushToCart(projectName);
+  const lastCart = pushedHistory[pushedHistory.length - 1];
+
+  const handleMoveToLastCart = (index: number) => {
+    moveToLastCart(index);
     setIsListModalOpen(false);
   };
+
+  if (!lastCart) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 px-5 pt-14 pb-48 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-surface/60 text-muted-foreground">
+          <ShoppingCart size={40} />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">Cart empty</h1>
+        <p className="text-sm text-muted-foreground">
+          Push a project from the BOM manager to get started.
+        </p>
+        <Link
+          href="/bom"
+          className="mt-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+        >
+          Go to BOM Manager
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5 px-5 pt-14 pb-48">
@@ -54,21 +68,19 @@ export default function CartScreen() {
         </Button>
       </header>
 
-      {projectInfo && (
-        <div className="rounded-3xl border border-white/5 bg-surface/60 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
-            Project Info
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">
-              {projectInfo.name}
-            </span>
-            <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {projectInfo.tag}
-            </span>
-          </div>
+      <div className="rounded-3xl border border-white/5 bg-surface/60 p-4">
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
+          Project Info
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">
+            {lastCart.name}
+          </span>
+          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {lastCart.tag}
+          </span>
         </div>
-      )}
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -83,7 +95,8 @@ export default function CartScreen() {
             Synced with DigiKey
           </p>
           <p className="text-[11px] text-foreground/70">
-            {itemCount} units · ready in your distributor cart
+            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units · ready
+            in your distributor cart
           </p>
         </div>
       </motion.div>
@@ -96,7 +109,7 @@ export default function CartScreen() {
           <Package size={14} className="text-muted-foreground" />
         </div>
         <div className="flex flex-col gap-2">
-          {items.map((c) => (
+          {lastCart.items.map((c) => (
             <div
               key={c.id}
               className="flex items-center justify-between text-sm gap-2"
@@ -109,7 +122,7 @@ export default function CartScreen() {
                 </span>
               </div>
               <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-                ₱{(c.qty * c.unitPrice).toFixed(2)}
+                ₱{c.qtyPrice.toFixed(2)}
               </span>
             </div>
           ))}
@@ -118,7 +131,7 @@ export default function CartScreen() {
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="font-mono text-lg font-semibold tabular-nums">
-            ₱{total.toFixed(2)}
+            ₱{lastCart.totalPrice.toFixed(2)}
           </span>
         </div>
       </div>
@@ -137,6 +150,7 @@ export default function CartScreen() {
         Start a new project
       </Link>
 
+
       {/* Modal: History */}
       <Dialog open={isListModalOpen} onOpenChange={setIsListModalOpen}>
         <DialogContent className="max-w-[360px] bg-surface border-white/10">
@@ -152,9 +166,9 @@ export default function CartScreen() {
                 No history yet.
               </p>
             ) : (
-              pushedHistory.map((p) => (
+              pushedHistory.map((p, i) => (
                 <div
-                  key={p.name}
+                  key={p.id}
                   className="flex items-center justify-between rounded-2xl bg-surface-elevated py-2 px-4 ring-1 ring-white/5"
                 >
                   <div className="flex flex-1 items-center justify-between transition-colors p-2 rounded-xl">
@@ -168,7 +182,7 @@ export default function CartScreen() {
                       <div>
                         <p className="text-sm font-medium">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          ₱{p.cost.toFixed(2)}
+                          ₱{p.totalPrice.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -179,7 +193,7 @@ export default function CartScreen() {
                     className="ml-2 rounded-full cursor-pointer text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePushToCart(p.name);
+                      handleMoveToLastCart(i);
                     }}
                   >
                     <ShoppingCart size={16} />

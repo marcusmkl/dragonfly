@@ -1,30 +1,34 @@
-"use client"
+"use client";
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { type Component } from "./data";
-import { recentProjects } from "@/data/mock/projects";
+import { type ProjectTag, recentProjects } from "@/data/mock/projects";
 import { mockInventory } from "@/data/mock/inventory";
+import {
+  type ProjectCartSummary,
+  calculateProjectCartSummary,
+} from "@/lib/project-calculator";
 
-import { type ProjectSummary } from "@/lib/projects";
-// ...
 interface BomStore {
   items: Component[];
   alerts: any[];
   total: number;
   itemCount: number;
-  projectInfo: { name: string; tag: string } | null;
-  pushedHistory: ProjectSummary[];
+  projectInfo: { name: string; tag: ProjectTag } | null;
+  pushedHistory: ProjectCartSummary[];
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
   loadProject: (projectName: string) => void;
   loadDynamicProject: (projectName: string, newItems: Component[], newAlerts?: any[]) => void;
-  pushToCart: (projectName: string) => void;
+  pushToCart: (summary: Omit<ProjectCartSummary, 'totalPrice'>) => void;
+  moveToLastCart: (index: number) => void;
 }
 
 const Ctx = createContext<BomStore | null>(null);
@@ -34,9 +38,9 @@ export function BomProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
-    tag: string;
+    tag: ProjectTag;
   } | null>(null);
-  const [pushedHistory, setPushedHistory] = useState<ProjectSummary[]>([]);
+  const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
   const loadProject = (projectName: string) => {
     const project = recentProjects.find((p) => p.name === projectName);
@@ -58,18 +62,24 @@ export function BomProvider({ children }: { children: ReactNode }) {
     setItems(newItems);
     setAlerts(newAlerts);
   };
-
-  const pushToCart = (projectName: string) => {
-    const project = recentProjects.find((p) => p.name === projectName);
-    if (!project) return;
-    
-    // Add to history if not already present
-    if (!pushedHistory.find(p => p.name === projectName)) {
-        setPushedHistory(prev => [...prev, project]);
-    }
-    
-    loadProject(projectName);
-  };
+  const pushToCart = useCallback(
+    (summary: Omit<ProjectCartSummary, 'totalPrice'>) => {
+      const totalPrice = summary.items.reduce((s, i) => s + i.qtyPrice, 0);
+      const fullSummary: ProjectCartSummary = { ...summary, totalPrice };
+      setPushedHistory((prev) => [...prev, fullSummary]);
+    },
+    [],
+  );
+  const moveToLastCart = useCallback(
+    (index: number) =>
+      setPushedHistory((prev) => {
+        if (index < 0 || index >= prev.length) return prev;
+        const item = prev[index];
+        const newHistory = prev.filter((_, i) => i !== index);
+        return [...newHistory, item];
+      }),
+    [],
+  );
 
   const value = useMemo<BomStore>(() => {
     const total = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
@@ -91,17 +101,16 @@ export function BomProvider({ children }: { children: ReactNode }) {
         ),
       loadProject,
       loadDynamicProject,
-      pushToCart
+      pushToCart,
+      moveToLastCart,
     };
-  }, [items, alerts, projectInfo, pushedHistory]);
+  }, [items, alerts, projectInfo, pushedHistory, pushToCart, moveToLastCart]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
-// ...
 
 export function useBom() {
   const v = useContext(Ctx);
   if (!v) throw new Error("useBom outside provider");
   return v;
 }
-
