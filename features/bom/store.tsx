@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { recentProjects } from "@/data/mock/projects";
+import { getAllProjects, getProjectNodes } from "@/lib/project/client";
 import { getAllComponents } from "@/lib/inventory/client";
 import { type ProjectCartSummary } from "@/lib/project-calculator";
 import { Component } from "@/lib/inventory/types";
@@ -45,19 +45,21 @@ export function BomProvider({ children }: { children: ReactNode }) {
   const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
   const loadProject = async (projectName: string) => {
-    const project = recentProjects.find((p) => p.name === projectName);
+    const projects = await getAllProjects();
+    const project = projects.find((p) => p.name === projectName);
     if (!project) return;
 
     setProjectInfo({ name: project.name, tag: project.tag });
 
+    const nodes = await getProjectNodes(project.id);
     const allInventory = await getAllComponents();
-    const components = project.nodes
-      .map((node) => node.id)
+    const components = nodes
+      .map((node) => node.componentId)
       .map((id) => allInventory.find((item) => item.id === id))
       .filter((item): item is Component => !!item);
 
     setItems(components);
-    setAlerts([]); // Clear dynamic alerts when loading mock
+    setAlerts([]); // Clear dynamic alerts when loading from API
   };
 
   const loadDynamicProject = (

@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { categoryIcons } from "@/data/mock/projects";
+import { categoryIcons } from "@/lib/project/constants";
 import { ProjectCost } from "@/components/ProjectCost";
 
 export default function CartScreen() {
